@@ -300,18 +300,19 @@ optimizer = model.configure_optimizers(weight_decay=0.1, learning_rate=6e-4, dev
 for step in range(max_steps):
     optimizer.zero_grad() # set gradients to 0
 
+    loss_accum = 0.0
     for micro_step in grad_accum_steps:
         x,y = train_loader.next_batch()
         x,y = x.to(device), y.to(device) 
 
         # add if device != mps
-        #with torch.autocast(device_type=device, dtype=torch.bfloat16):
-        # Uncomment for CUDA training
-
-        logits, loss = model(x, y)
+        with torch.autocast(device_type=device, dtype=torch.bfloat16):
+            logits, loss = model(x, y)
 
         loss = loss / grad_accum_steps
+        loss_accum += loss.detach()
         loss.backward()
+
     norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     # get learning rate step
     lr = get_lr(step)
@@ -319,9 +320,9 @@ for step in range(max_steps):
         param_group['lr'] = lr
     optimizer.step() # update parameters and decrease loss
 
-    # torch.cuda.synchronize()
+    torch.cuda.synchronize()
     if step % 1 == 0:
-        print(f"step {step:4d}, loss: {loss.item():.6f} | lr {lr:.4e} | norm: {norm:.4f}")
+        print(f"step {step:4d}, loss: {loss_accum.item():.6f} | lr {lr:.4e} | norm: {norm:.4f}")
 
 print(loss)
 import sys; sys.exit(0)
