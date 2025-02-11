@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 import math
 from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
 
 batch_size = 64
 block_size = 256
@@ -317,6 +318,7 @@ if device == 'cuda':
     torch.compile(device)
 if ddp:
     model = DDP(model, device_ids=[ddp_local_rank])
+raw_model = model.module if ddp else model # always contain the "raw" unwrapped module
 
 max_lr = 6e-4
 min_lr = max_lr * 0.1
@@ -337,7 +339,7 @@ def get_lr(it):
 
 # optimize!
 #torch.optim.Adam(model.parameters(), lr=3e-4, betas=(0.9, 0.95), eps=1e-8)
-optimizer = model.configure_optimizers(weight_decay=0.1, learning_rate=6e-4, device=device)
+optimizer = raw_model.configure_optimizers(weight_decay=0.1, learning_rate=6e-4, device=device)
 for step in range(max_steps):
     optimizer.zero_grad() # set gradients to 0
 
@@ -356,6 +358,8 @@ for step in range(max_steps):
         if ddp:
             model.require_backward_grad_sync = (micro_step == grad_accum_steps - 1)
         loss.backward()
+    if ddp:
+        dist.all_reduce(loss_accum, op=dist.ReduceOp.AVG)
 
     norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
     # get learning rate step
@@ -365,7 +369,7 @@ for step in range(max_steps):
     optimizer.step() # update parameters and decrease loss
 
     torch.cuda.synchronize()
-    if step % 1 == 0:
+    if master_process: 
         print(f"step {step:4d}, loss: {loss_accum.item():.6f} | lr {lr:.4e} | norm: {norm:.4f}")
 
 print(loss)
