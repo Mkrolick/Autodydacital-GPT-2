@@ -326,7 +326,7 @@ if torch.cpu.is_available():
 
 # gradient accumulation
 total_batch_size = 524288 # 2**19, ~0.5M in number of tokens
-B = 16 # micro batch size - check if this should be 64 for A100
+B = 64 # micro batch size - check if this should be 64 for A100
 T = 1024 # sequence length
 assert total_batch_size % (B * T * ddp_world_size) == 0, "make sure total_batch_size is divisible by B * T"
 grad_accum_steps = total_batch_size // (B * T * ddp_world_size)
@@ -404,8 +404,8 @@ for step in range(max_steps):
                 x, y = val_loader.next_batch()
                 x, y = x.to(device), y.to(device)
                 # uncomment for CUDA run
-                # with torch.autocast(device_type=device, dtype=torch.bfloat16):
-                logits, loss = model(x,y)
+                with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                    logits, loss = model(x,y)
                 loss = loss / val_loss_steps
                 val_loss_accum += loss.detach()
         if ddp:
