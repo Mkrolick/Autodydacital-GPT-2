@@ -430,7 +430,7 @@ for step in range(max_steps):
     # predict sentences occasionally
     if ((step > 0 and step % 250 == 0) or last_step) and (not use_compile):
         model.eval()
-        num_return_sequences = 1
+        num_return_sequences = 5
         max_len = 32
         enc = tiktoken.get_encoding('gpt2')
         tokens = enc.encode("Hello, I'm a language model,")
