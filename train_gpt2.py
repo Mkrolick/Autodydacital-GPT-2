@@ -299,7 +299,7 @@ ddp = int(os.environ.get('RANK', -1)) != -1
 if ddp:
     # use of DDP atm demands CUDA, we set the deive appropriately according to rank
     assert torch.cuda.is_available(), "for now i think we need CUDA for DDP"
-    init_process_group(backend='ncct')
+    init_process_group(backend='nccl')
     ddp_rank = int(os.environ['RANK'])
     ddp_local_rank = int(os.environ['LOCAL_RANK'])
     ddp_world_size = int(os.environ['WORLD_SIZE'])
