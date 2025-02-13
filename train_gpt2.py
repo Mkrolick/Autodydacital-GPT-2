@@ -445,7 +445,8 @@ for step in range(max_steps):
         while x.size(1) < max_len:
             # forward model to get logits
             with torch.no_grad():
-                logits = model(x) # (B, T, vocab_size)
+                with torch.autocast(device_type=device, dtype=torch.bfloat16):
+                    logits = model(x) # (B, T, vocab_size)
                 # take logits at last position
                 logits = logits[:, -1, :] # (B, vocab_size)
                 # get probabilities
@@ -464,7 +465,7 @@ for step in range(max_steps):
         for i in range(num_return_sequences):
             tokens = x[i, :max_len].tolist()
             decoded = enc.decode(tokens)
-            print(">", decoded)
+            print(f"rank {ddp_rank} sample {i}: {decoded}")
         
             
 
