@@ -430,7 +430,7 @@ for step in range(max_steps):
     # predict sentences occasionally
     if ((step > 0 and step % 250 == 0) or last_step) and (not use_compile):
         model.eval()
-        num_return_sequences = 4
+        num_return_sequences = 1
         max_len = 32
         enc = tiktoken.get_encoding('gpt2')
         tokens = enc.encode("Hello, I'm a language model,")
@@ -446,7 +446,7 @@ for step in range(max_steps):
             # forward model to get logits
             with torch.no_grad():
                 with torch.autocast(device_type=device, dtype=torch.bfloat16):
-                    logits = model(x) # (B, T, vocab_size)
+                    logits, _ = model(x) # (B, T, vocab_size)
                 # take logits at last position
                 logits = logits[:, -1, :] # (B, vocab_size)
                 # get probabilities
