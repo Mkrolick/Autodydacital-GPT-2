@@ -419,7 +419,7 @@ for step in range(max_steps):
                 checkpoint_path = os.path.join(log_dir, f"model_{step:05d}.pt")
                 checkpoint  = {
                     'model': raw_model.state_dict(),
-                    'config': raw_model.config(),
+                    'config': raw_model.config,
                     'step': step,
                     'val_loss' : val_loss_accum.item(),
                     'optimizer_state_dict': optimizer.state_dict(),
